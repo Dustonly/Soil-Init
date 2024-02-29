@@ -1,11 +1,36 @@
 import os
 import sys
 from importlib.machinery import SourceFileLoader
+import requests
+from tqdm import tqdm
 
 
 class Helper:
     def check_file(self, filename):
         return os.path.isfile(filename)
+
+    def make_dir(self, name):
+        if not os.path.isdir(name):
+            os.makedirs(name)
+
+    def download_file(self, url, local_path):
+        response = requests.get(url, stream=True)
+
+        total_size = int(response.headers.get('content-length', 0))
+        block_size = 1024  # 1 KB
+
+        with open(local_path, 'wb') as file, tqdm(
+                desc="Downloading",
+                total=total_size,
+                unit='B',
+                unit_scale=True,
+                unit_divisor=1024,
+                miniters=1) as bar:
+            for data in response.iter_content(block_size):
+                bar.update(len(data))
+                file.write(data)
+
+        print("File downloaded successfully.\n")
 
 
 class Domain:
@@ -60,10 +85,72 @@ class Domain:
         self.sg_res = dfile.sg_res
 
 
+class Soilgrids:
+    def __init__(self):
+        self.sandfile = None
+        self.siltfile = None
+        self.clayfile = None
+        self.cfvofile = None
+
+    def initialize(self, resolution):
+        self.check_resolution(resolution)
+
+        Helper().make_dir(f'./soilgrids/{resolution}')
+
+        for var in ['sand', 'silt', 'clay', 'cfvo']:
+            filename = f'./soilgrids/{resolution}/{var}_{resolution}.tif'
+
+            if var == 'sand':
+                self.sandfile = filename
+            if var == 'silt':
+                self.siltfile = filename
+            if var == 'clay':
+                self.clayfile = filename
+            if var == 'cfvo':
+                self.cfvofile = filename
+
+            if not Helper().check_file(filename):
+                self.download_data(var, filename, resolution)
+
+    def check_resolution(self, resolution):
+        if resolution == 'coarse':
+            pass
+        elif resolution == 'medium':
+            pass
+        elif resolution == 'fine':
+            print('sg_res = fine is not defined yet; exit')
+            exit()
+        else:
+            print('sg_res must be coarse, medium or fine; exit')
+            exit()
+
+    def make_url(self, var, resolution):
+        url = 'https://files.isric.org/soilgrids/latest/'
+        if resolution == 'coarse':
+            url += f'data_aggregated/5000m/{var}/{var}_0-5cm_mean_5000.tif'
+        elif resolution == 'medium':
+            url += f'data_aggregated/1000m/{var}/{var}_0-5cm_mean_1000.tif'
+        elif resolution == 'fine':
+            print('sg_res = fine is not defined yet; exit')
+            exit()
+
+        return url
+    # https://files.isric.org/soilgrids/latest/data_aggregated/5000m/clay/
+
+    def download_data(self, var, filename, resolution):
+        print(f'Downloading {var} from the soilgrids file server')
+
+        url = self.make_url(var, resolution)
+        Helper().download_file(url, filename)
+
+
 def main():
     domain = Domain()
     domain.read_domain_file()
-    print(domain)
+    print(domain.sg_res)
+
+    soilgrids = Soilgrids()
+    soilgrids.initialize(domain.sg_res)
 
 
 main()
