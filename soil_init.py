@@ -4,6 +4,8 @@ from importlib.machinery import SourceFileLoader
 import requests
 from tqdm import tqdm
 import numpy as np
+import rasterio
+from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 
 class Helper:
@@ -226,6 +228,7 @@ class Soilgrids:
         Helper().make_dir(f'./soilgrids/{resolution}')
 
         for var in ['sand', 'silt', 'clay', 'cfvo']:
+            rawfilename = f'./soilgrids/{resolution}/{var}_{resolution}_raw.tif'
             filename = f'./soilgrids/{resolution}/{var}_{resolution}.tif'
 
             if var == 'sand':
@@ -237,8 +240,11 @@ class Soilgrids:
             if var == 'cfvo':
                 self.cfvofile = filename
 
-            if not Helper().check_file(filename):
-                self.download_data(var, filename, resolution)
+            if not Helper().check_file(rawfilename) and not Helper().check_file(filename):
+                self.download_data(var, rawfilename, resolution)
+
+            if not Helper().check_file(filename) and Helper().check_file(rawfilename):
+                self.convert_to_epsg4326(rawfilename, filename)
 
     def check_resolution(self, resolution):
         if resolution == 'coarse':
@@ -271,6 +277,44 @@ class Soilgrids:
         url = self.make_url(var, resolution)
         Helper().download_file(url, filename)
 
+    def convert_to_epsg4326(self, input_file, output_file):
+        """
+        Convert a GeoTIFF file to EPSG:4326.
+
+        Args:
+            input_file (str): Path to the input GeoTIFF file.
+            output_file (str): Path to save the output GeoTIFF file in EPSG:4326.
+        """
+        print(input_file, output_file)
+        # Open the input GeoTIFF file
+        with rasterio.open(input_file) as src:
+            # Define the target CRS (EPSG:4326)
+            dst_crs = 'EPSG:4326'
+
+            # Calculate the transform for reprojection
+            transform, width, height = calculate_default_transform(
+                src.crs, dst_crs, src.width, src.height, *src.bounds)
+
+            # Set the output file options
+            kwargs = src.meta.copy()
+            kwargs.update({
+                'crs': dst_crs,
+                'transform': transform,
+                'width': width,
+                'height': height
+            })
+
+            # Create the output GeoTIFF file and perform reprojection
+            with rasterio.open(output_file, 'w', **kwargs) as dst:
+                for i in range(1, src.count + 1):
+                    reproject(
+                        source=rasterio.band(src, i),
+                        destination=rasterio.band(dst, i),
+                        src_transform=src.transform,
+                        src_crs=src.crs,
+                        dst_transform=transform,
+                        dst_crs=dst_crs,
+                        resampling=Resampling.nearest)
 
 def main():
     domain = Domain()
