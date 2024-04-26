@@ -3,6 +3,7 @@ import sys
 from importlib.machinery import SourceFileLoader
 import requests
 from tqdm import tqdm
+import numpy as np
 
 
 class Helper:
@@ -48,6 +49,9 @@ class Domain:
         self.end_date = None
         self.sg_res = None
 
+        self.rlons = None
+        self.rlats = None
+
     def get_dfilename(self):
         # check if a domain file is given as sys argument
         if len(sys.argv) > 1:
@@ -84,6 +88,45 @@ class Domain:
         self.end_date = dfile.end_date
         self.sg_res = dfile.sg_res
 
+    def get_rlons_rlats(self):
+        self.rlons = [self.startlon + i * self.dx
+                      for i in range(self.ie_tot)]
+        self.rlats = [self.startlat + i * self.dx
+                      for i in range(self.je_tot)]
+
+    def get_edge(self, offset=0):
+        # define edge of the domain for the first rough cut out
+        rlons = [self.startlon + i * self.dx
+                 for i in range(-offset, self.ie_tot+offset)]
+        rlats = [self.startlat + i * self.dx
+                 for i in range(-offset, self.je_tot+offset)]
+
+        # southers edge
+        edgelon = [rlons[i] for i in range(len(rlons))]
+        edgelat = [rlats[0]]*len(rlons)
+
+        # northern edge
+        edgelon += rlons
+        edgelat += [rlats[-1]]*len(rlons)
+
+        # eastern edge
+        edgelon += [rlons[0]]*len(rlats)
+        edgelat += rlats
+
+        # western edge
+        edgelon += [rlons[-1]]*len(rlats)
+        edgelat += rlats
+
+        (elongeo, elatgeo) = Geo().rot2geo(edgelon, edgelat,
+                                           self.pol_lon, self.pol_lat)
+
+        # xgeomin = np.min(elongeo)
+        # xgeomax = np.max(elongeo)
+        # ygeomin = np.min(elatgeo)
+        # ygeomax = np.max(elatgeo)
+
+        # return xgeomin, xgeomax, ygeomin, ygeomax
+        return elongeo, elatgeo
 
 class Soilgrids:
     def __init__(self):
