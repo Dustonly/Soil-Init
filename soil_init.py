@@ -4,8 +4,11 @@ from importlib.machinery import SourceFileLoader
 import requests
 from tqdm import tqdm
 import numpy as np
+from itertools import product
+from geotiff import GeoTiff
 import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
+import time
 
 
 class Helper:
@@ -316,6 +319,38 @@ class Soilgrids:
                         dst_crs=dst_crs,
                         resampling=Resampling.nearest)
 
+    def read(self, corner_x, corner_y):
+        box = [(np.min(corner_x), np.min(corner_y)),
+               (np.max(corner_x), np.max(corner_y))]
+
+        geo_tiff = GeoTiff(self.sandfile)
+        sand = geo_tiff.read_box(box, outer_points=2)
+        sand = np.ma.masked_where(sand < 0, sand/1000)
+        geo_tiff = GeoTiff(self.siltfile)
+        silt = geo_tiff.read_box(box, outer_points=2)
+        silt = np.ma.masked_where(silt < 0, silt/1000)
+        geo_tiff = GeoTiff(self.clayfile)
+        clay = geo_tiff.read_box(box, outer_points=2)
+        clay = np.ma.masked_where(clay < 0, clay/1000)
+        geo_tiff = GeoTiff(self.cfvofile)
+        cfvo = geo_tiff.read_box(box, outer_points=2)
+        cfvo = np.ma.masked_where(cfvo < 0, cfvo/1000)
+
+        int_box = geo_tiff.get_int_box(box, outer_points=2)
+
+        dim = sand.shape
+
+        i = int_box[0][0]
+        j = int_box[0][1]
+        lon0, lat0 = geo_tiff.get_wgs_84_coords(i, j)
+        i = int_box[1][0]
+        j = int_box[1][1]
+        lon1, lat1 = geo_tiff.get_wgs_84_coords(i, j)
+        lon = np.linspace(lon0, lon1, (dim[1]))
+        lat = np.linspace(lat0, lat1, (dim[0]))
+
+        return sand, silt, clay, lon, lat
+
 def main():
     domain = Domain()
     soilgrids = Soilgrids()
@@ -326,6 +361,22 @@ def main():
     print(domain.sg_res)
 
     soilgrids.initialize(domain.sg_res)
+
+    # loop over all grid boxes
+    count = 0
+    sumtime = 0
+    for rlon, rlat in product(domain.rlons, domain.rlats):
+        stime = time.time()
+        count += 1
+        # print(rlon, rlat)
+        corner_x, corner_y = geo.get_corners(rlon, rlat)
+        sand, silt, clay, lon, lat = soilgrids.read(corner_x, corner_y)
+
+        sumtime += time.time() - stime
+        # plot_box(corner_x, corner_y, sand, lon, lat)
+        # print(sand)
+
+    print(sumtime, count, sumtime/count)
 
 
 main()
