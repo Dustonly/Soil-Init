@@ -62,21 +62,45 @@ def main():
 
     soilgrids.initialize(domain.sg_res)
 
+    # print(geo.get_corners(np.min(domain.rlons), np.min(domain.rlats)))
+    # print(geo.get_corners(np.max(domain.rlons), np.max(domain.rlats)))
     # loop over all grid boxes
     count = 0
     sumtime = 0
-    for rlon, rlat in product(domain.rlons, domain.rlats):
-        stime = time.time()
-        count += 1
-        # print(rlon, rlat)
-        corner_x, corner_y = geo.get_corners(rlon, rlat)
-        sand, silt, clay, lon, lat = soilgrids.read(corner_x, corner_y)
+    rlonlatlist = list(product(domain.rlons, domain.rlats))
+    # for rlon, rlat in product(domain.rlons, domain.rlats):
+    stime = time.time()
+    #     stime = time.time()
+    #     count += 1
+    #     # print(rlon, rlat)
+    #     corner_x, corner_y = geo.get_corners(rlon, rlat)
+    #     sand, silt, clay, lon, lat = soilgrids.read(corner_x, corner_y)
 
-        sumtime += time.time() - stime
-        # plot_box(corner_x, corner_y, sand, lon, lat)
-        # print(sand)
+    #     sumtime += time.time() - stime
+    #     # plot_box(corner_x, corner_y, sand, lon, lat)
+    #     # print(sand)
 
-    print(sumtime, count, sumtime/count)
+    #   print(sumtime, count, sumtime/count)
+
+    # print(rlonlatlist[0])
+    rlon = rlonlatlist[0][0]
+    rlat = rlonlatlist[0][1]
+    corner_x, corner_y = geo.get_corners(rlon, rlat)
+    # print(corner_x, corner_y)
+    # sand = get(rlonlatlist[0])
+
+    max_processes = 1
+# Create a multiprocessing pool
+    with multiprocessing.Pool(processes=max_processes) as pool:
+        # Map the function to the coordinates using multiple processes
+
+        sand = pool.starmap(get, rlonlatlist)
+
+    sand = np.array(sand)
+    print(sand)
+    # print(sand.shape)
+    print(time.time()-stime)
 
 
-main()
+if __name__ == '__main__':
+    main()
