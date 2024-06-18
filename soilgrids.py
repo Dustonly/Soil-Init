@@ -4,6 +4,7 @@ import rasterio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 from helper import Helper
+from geo import Geo
 
 
 class Soilgrids:
@@ -134,7 +135,7 @@ class Soilgrids:
         i = int_box[1][0]
         j = int_box[1][1]
         lon1, lat1 = geo_tiff.get_wgs_84_coords(i, j)
-        lon = np.linspace(lon0, lon1, (dim[1]))
-        lat = np.linspace(lat0, lat1, (dim[0]))
+        lon = np.linspace(lon0, lon1, (dim[1])+1)
+        lat = np.linspace(lat0, lat1, (dim[0]+1))
 
-        return sand, silt, clay, lon, lat
+        return sand, silt, clay, cfvo, lon, lat

@@ -42,10 +42,17 @@ def get(rlon, rlat):
     # print(rlon, rlat)
 
     corner_x, corner_y = geo.get_corners(rlon, rlat)
-    sand, silt, clay, lon, lat = soilgrids.read(corner_x, corner_y)
-    print()
-    print(sand)
-    plot_box(corner_x, corner_y, sand, lon, lat)
+    sand, silt, clay, cfvo, lon, lat = soilgrids.read(corner_x, corner_y)
+
+    polygon_vertices = np.array(list(zip(corner_x, corner_y)))
+    mask = geo.mask_with_polygon(lon, lat, polygon_vertices)
+    # sand = np.where(mask, sand, np.nan)
+    data_mask = sand.mask | mask
+
+    sand = np.ma.array(sand, mask=data_mask)
+    silt = np.ma.array(silt, mask=data_mask)
+    clay = np.ma.array(clay, mask=data_mask)
+    cfvo = np.ma.array(cfvo, mask=data_mask)
 
     # return np.mean(sand)
     return sand
