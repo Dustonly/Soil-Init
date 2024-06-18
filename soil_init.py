@@ -54,8 +54,10 @@ def get(rlon, rlat):
     clay = np.ma.array(clay, mask=data_mask)
     cfvo = np.ma.array(cfvo, mask=data_mask)
 
-    # return np.mean(sand)
-    return sand
+    mean_sand, mean_silt, mean_clay = soilgrids.norm_box_mean(sand, silt, clay)
+    mean_cfvo = soilgrids.box_mean(cfvo)
+
+    return mean_sand
 
 
 def main():

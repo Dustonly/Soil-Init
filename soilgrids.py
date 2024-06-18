@@ -139,3 +139,34 @@ class Soilgrids:
         lat = np.linspace(lat0, lat1, (dim[0]+1))
 
         return sand, silt, clay, cfvo, lon, lat
+
+    def norm_box_mean(self, sand, silt, clay):
+
+        mean_sand = np.mean(sand)
+        mean_silt = np.mean(silt)
+        mean_clay = np.mean(clay)
+
+        total = mean_sand + mean_silt + mean_clay
+
+        count = 0
+        while total != 1:
+
+            count += 1
+            mean_sand = mean_sand / total
+            mean_silt = mean_silt / total
+            mean_clay = mean_clay / total
+
+            total = mean_sand + mean_silt + mean_clay
+
+            if count >= 3:
+                delta = 1 - total
+                mean_clay = mean_clay - delta
+
+            if count > 5:
+                break
+
+        return mean_sand, mean_silt, mean_clay
+
+    def box_mean(self, var):
+        mean_var = np.mean(var)
+        return mean_var
