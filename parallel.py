@@ -28,10 +28,14 @@ class Parallel:
             clay.append(res[2])
             cfvo.append(res[3])
 
-        sand = np.array(sand).reshape((domain.je_tot, domain.ie_tot))
-        silt = np.array(silt).reshape((domain.je_tot, domain.ie_tot))
-        clay = np.array(clay).reshape((domain.je_tot, domain.ie_tot))
-        cfvo = np.array(cfvo).reshape((domain.je_tot, domain.ie_tot))
+        sand = np.array(sand).reshape(
+            (domain.je_tot, domain.ie_tot), order='F')
+        silt = np.array(silt).reshape(
+            (domain.je_tot, domain.ie_tot), order='F')
+        clay = np.array(clay).reshape(
+            (domain.je_tot, domain.ie_tot), order='F')
+        cfvo = np.array(cfvo).reshape(
+            (domain.je_tot, domain.ie_tot), order='F')
 
         self.interpolated_data.append(sand)
         self.interpolated_data.append(silt)
